@@ -1,4 +1,4 @@
 b2sdk
-plyvel
 click
-
+plyvel
+python-rocksdb

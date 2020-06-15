@@ -1,5 +1,6 @@
 import click
-import plyvel
+import rocksdb
+
 
 @click.group()
 def cli():
@@ -9,19 +10,19 @@ def cli():
 @cli.command()
 @click.argument('dbpath')
 def mk(dbpath):
-    ldb = plyvel.DB(dbpath, create_if_missing=True, error_if_exists=True)
+    ldb = rocksdb.DB(dbpath, rocksdb.Options(create_if_missing=True, error_if_exists=True))
 
 
 @cli.command()
 @click.argument('dbpath')
 def rm(dbpath):
-    plyvel.destroy_db(dbpath)
+    raise NotImplementedError
 
 
 @cli.command()
-@click.option('--dbpath', default='.mop.leveldb')
+@click.option('--dbpath', default='.mop.rocksdb')
 def ls(dbpath):
-    ldb = plyvel.DB(dbpath)
+    ldb = rocksdb.DB(dbpath)
     for sha, path in ldb:
         print(f'{sha.decode("UTF-8")} {path.decode("UTF-8")}')
 
