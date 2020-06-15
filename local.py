@@ -25,8 +25,8 @@ def cli():
 def ls(path, recursive):
     for dirpath, dirnames, filenames in os.walk(path):
         for f in filenames:
-            fname = os.path.join(dirpath, f)
-            print(f'{sha1(fname)}: {fname}')
+            filename = os.path.join(dirpath, f)
+            print(f'{sha1(filename)}: {filename}')
 
 
 @cli.command()
@@ -36,8 +36,8 @@ def add(dbpath, path, recurse=False):
     ldb = plyvel.DB(dbpath, create_if_missing=True)
 
     for dirpath, dirnames, filenames in os.walk(path):
-        for f in filenames:
-            add_file(ldb, os.path.join(dirpath, f))
+        for filename in filenames:
+            add_file(ldb, os.path.join(dirpath, filename))
 
 
 if __name__ == '__main__':

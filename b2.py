@@ -21,16 +21,16 @@ def login():
 
 
 @cli.command()
-@click.argument('bucket')
 @click.option('--folder', default='')
-@click.option('--recursive', default=False)
+@click.option('--recursive', is_flag=True)
 @click.option('--max-count', default=5)
-def ls(bucket, folder, recursive, max_count):
+@click.argument('bucket')
+def ls(folder, recursive, max_count, bucket):
     info = SqliteAccountInfo()
     b2 = B2Api(info)
 
     bucket = b2.get_bucket_by_name(bucket)
-    for fi, dirname in bucket.ls(folder_to_list=folder, recursive=False, fetch_count=max_count):
+    for fi, dirname in bucket.ls(folder_to_list=folder, recursive=recursive, fetch_count=max_count):
         print(f'{fi.content_sha1} {fi.file_name}')
 
 
@@ -38,7 +38,7 @@ def ls(bucket, folder, recursive, max_count):
 @click.argument('bucket')
 @click.option('--dbpath', default='.mop.db')
 @click.option('--folder', default='')
-@click.option('--recursive', default=False)
+@click.option('--recursive', is_flag=True)
 @click.option('--max-count', default=5)
 def add(bucket, dbpath, folder, recursive, max_count):
     info = SqliteAccountInfo()
@@ -47,7 +47,7 @@ def add(bucket, dbpath, folder, recursive, max_count):
 
     ldb = plyvel.DB(dbpath)
 
-    for fi, dirname in bucket.ls(folder_to_list=folder, recursive=False, fetch_count=max_count):
+    for fi, dirname in bucket.ls(folder_to_list=folder, recursive=recursive, fetch_count=max_count):
         print(f'{fi.content_sha1} {fi.file_name}')
         ldb.put(fi.content_sha1.encode('UTF-8'), fi.file_name.encode('UTF-8'))
 
