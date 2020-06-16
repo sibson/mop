@@ -1,6 +1,7 @@
 from getpass import getpass
 
 from b2sdk.v1 import SqliteAccountInfo, B2Api
+from b2sdk.exception import FileAlreadyHidden
 import click
 import plyvel
 
@@ -49,7 +50,23 @@ def add(bucket, dbpath, folder, recursive, max_count):
 
     for fi, dirname in bucket.ls(folder_to_list=folder, recursive=recursive, fetch_count=max_count):
         print(f'{fi.content_sha1} {fi.file_name}')
-        ldb.put(fi.content_sha1.encode('UTF-8'), fi.file_name.encode('UTF-8'))
+        leveldb.add_file(ldb, fi.content_sha1, fi.file_name)
+
+
+@cli.command()
+@click.argument('bucket')
+@click.argument('paths', type=click.File('r'))
+def hide(bucket, paths):
+    info = SqliteAccountInfo()
+    b2 = B2Api(info)
+    bucket = b2.get_bucket_by_name(bucket)
+
+    for path in paths:
+        print(path, end='')
+        try:
+            bucket.hide_file(path[:-1])
+        except FileAlreadyHidden:
+            pass
 
 if __name__ == '__main__':
     cli()
