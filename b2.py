@@ -5,6 +5,8 @@ from b2sdk.exception import FileAlreadyHidden
 import click
 import plyvel
 
+import leveldb
+
 
 @click.group()
 def cli():
@@ -26,7 +28,7 @@ def login():
 @click.option('--recursive', is_flag=True)
 @click.option('--max-count', default=5)
 @click.argument('bucket')
-def ls(folder, recursive, max_count, bucket):
+def sha1sum(folder, recursive, max_count, bucket):
     info = SqliteAccountInfo()
     b2 = B2Api(info)
 
@@ -41,7 +43,7 @@ def ls(folder, recursive, max_count, bucket):
 @click.option('--folder', default='')
 @click.option('--recursive', is_flag=True)
 @click.option('--max-count', default=5)
-def add(bucket, dbpath, folder, recursive, max_count):
+def index(bucket, dbpath, folder, recursive, max_count):
     info = SqliteAccountInfo()
     b2 = B2Api(info)
     bucket = b2.get_bucket_by_name(bucket)

@@ -3,16 +3,15 @@ import os, hashlib
 import click
 import plyvel
 
-
-def sha1(filename):
-    with open(filename,"rb") as f:
-        sha = hashlib.sha1(f.read()).hexdigest();
-    return sha
+import leveldb
 
 
-def add_file(ldb, filename):
-    sha = sha1(filename)
-    ldb.put(sha.encode('UTF-8'), filename.encode('UTF-8'))
+def sha1(filename, num_blocks=128):
+    h = hashlib.sha1()
+    with open(filename,'rb') as f:
+        for chunk in iter(lambda: f.read(num_blocks*h.block_size), b''):
+            h.update(chunk)
+    return h.hexdigest()
 
 
 @click.group()
@@ -22,7 +21,7 @@ def cli():
 
 @cli.command()
 @click.option('--recursive')
-def ls(path, recursive):
+def sha1sum(path, recursive):
     for dirpath, dirnames, filenames in os.walk(path):
         for f in filenames:
             filename = os.path.join(dirpath, f)
@@ -32,12 +31,14 @@ def ls(path, recursive):
 @cli.command()
 @click.option('--dbpath', default='.mop.db')
 @click.argument('path')
-def add(dbpath, path, recurse=False):
+def index(dbpath, path, recurse=False):
     ldb = plyvel.DB(dbpath, create_if_missing=True)
 
     for dirpath, dirnames, filenames in os.walk(path):
         for filename in filenames:
-            add_file(ldb, os.path.join(dirpath, filename))
+            path = os.path.join(dirpath, filename)
+            sha = sha1(path)
+            leveldb.add_file(ldb, sha, path)
 
 
 if __name__ == '__main__':
