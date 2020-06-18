@@ -46,13 +46,15 @@ def sha1sum(folder, recursive, max_count, bucket):
 def index(bucket, dbpath, folder, recursive, max_count):
     info = SqliteAccountInfo()
     b2 = B2Api(info)
-    bucket = b2.get_bucket_by_name(bucket)
+    b2bucket = b2.get_bucket_by_name(bucket)
 
     ldb = plyvel.DB(dbpath)
 
-    for fi, dirname in bucket.ls(folder_to_list=folder, recursive=recursive, fetch_count=max_count):
+    for fi, dirname in b2bucket.ls(folder_to_list=folder, recursive=recursive, fetch_count=max_count):
         print(f'{fi.content_sha1} {fi.file_name}')
-        leveldb.add_file(ldb, fi.content_sha1, fi.file_name)
+        uri = f'b2://{bucket}/{fi.file_name}'
+        md = leveldb.FileMetaData(uri, fi.content_sha1, fi.file_name, fileName=fi.file_name, bucket=bucket, fileId=fi.id_)
+        md.write(ldb)
 
 
 @cli.command()
@@ -69,6 +71,7 @@ def hide(bucket, paths):
             bucket.hide_file(path[:-1])
         except FileAlreadyHidden:
             pass
+
 
 if __name__ == '__main__':
     cli()

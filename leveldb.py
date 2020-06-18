@@ -3,13 +3,68 @@ import binascii, hashlib, json
 import click
 import plyvel
 
+
+class FileMetaData(object):
+    def __init__(self, uri, sha1, path, **kwargs):
+        self.uri = uri
+        self.sha1 = sha1
+        self.path = path
+        self.kwargs = kwargs
+
+
+    def __json__(self):
+        dct = {
+            'uri': self.uri,
+            'path': self.path,
+            'sha1': self.sha1
+        }
+        dct.update(self.kwargs)
+        return dct
+
+
+    def write(self, ldb):
+        sha = self.sha1.encode()
+        uris = json.loads(ldb.get(sha, b'[]').decode())
+        if self.uri not in uris:
+            uris.append(self.uri)
+
+        metadata = json.dumps(self, cls=MetaDataEncoder)
+        ldb.put(self.uri.encode(), metadata.encode())
+        ldb.put(sha, json.dumps(uris).encode())
+
+
+class MetaDataEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, FileMetaData):
+            return obj.__json__()
+
+        return json.JSONEncoder.default(self, obj)
+
+
+def dumps(obj):
+    return json.dumps(obj, cls=MetaDataEncoder)
+
+
+def json_object_hook(dct):
+    klass = dct.pop('__class__')
+    if klass not in ['MetaDataEncoder']:
+        return dct
+
+    if klass == 'FileMetaData':
+        return FileMetaData(dct['path'], dct['sha1'])
+
+    return dct
+
+
+def loads(data):
+    return json.loads(data, object_hook=json_object_hook)
+
+
 @click.group()
 def cli():
     pass
 
 
-def add_file(ldb, sha, filename):
-    ldb.put(sha.encode(), filename.encode())
 
 
 @cli.command()

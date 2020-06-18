@@ -37,8 +37,13 @@ def index(dbpath, path, recurse=False):
     for dirpath, dirnames, filenames in os.walk(path):
         for filename in filenames:
             path = os.path.join(dirpath, filename)
+            path = os.path.abspath(path)
+            uri = f'file://{path}'
             sha = sha1(path)
-            leveldb.add_file(ldb, sha, path)
+
+            md = leveldb.FileMetaData(uri, sha, path,
+                    fileName=filename)
+            md.write(ldb)
 
 
 if __name__ == '__main__':
