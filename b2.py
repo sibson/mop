@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+import sys
 from getpass import getpass
 
 from b2sdk.v1 import SqliteAccountInfo, B2Api
@@ -39,7 +41,7 @@ def sha1sum(folder, recursive, max_count, bucket):
 
 @cli.command()
 @click.argument('bucket')
-@click.option('--dbpath', default='.mop.db')
+@click.option('--dbpath', default='.b2.db')
 @click.option('--folder', default='')
 @click.option('--recursive', is_flag=True)
 @click.option('--max-count', default=5)
@@ -48,11 +50,11 @@ def index(bucket, dbpath, folder, recursive, max_count):
     b2 = B2Api(info)
     b2bucket = b2.get_bucket_by_name(bucket)
 
-    ldb = plyvel.DB(dbpath)
-
+    ldb = plyvel.DB(dbpath, create_if_missing=True)
     for fi, dirname in b2bucket.ls(folder_to_list=folder, recursive=recursive, fetch_count=max_count):
-        print(f'{fi.content_sha1} {fi.file_name}')
         uri = f'b2://{bucket}/{fi.file_name}'
+
+        print(f'{fi.content_sha1} {fi.file_name}')
         md = leveldb.FileMetaData(uri, fi.content_sha1, fi.file_name, fileName=fi.file_name, bucket=bucket, fileId=fi.id_)
         md.write(ldb)
 
@@ -66,11 +68,14 @@ def hide(bucket, paths):
     bucket = b2.get_bucket_by_name(bucket)
 
     for path in paths:
-        print(path, end='')
+        path = path.strip('\n')
+        print(f'{path}.. ', end='')
         try:
-            bucket.hide_file(path[:-1])
+            bucket.hide_file(path)
         except FileAlreadyHidden:
             pass
+
+        print('hidden')
 
 
 if __name__ == '__main__':

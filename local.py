@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os, hashlib
 
 import click
@@ -41,8 +43,8 @@ def index(dbpath, path, recurse=False):
             uri = f'file://{path}'
             sha = sha1(path)
 
-            md = leveldb.FileMetaData(uri, sha, path,
-                    fileName=filename)
+            print(f'{sha} {filename}')
+            md = leveldb.FileMetaData(uri, sha, path, fileName=filename)
             md.write(ldb)
 
 
