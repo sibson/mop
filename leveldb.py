@@ -133,8 +133,8 @@ def missing(target, sources):
 @click.argument('target')
 @click.argument('source', nargs=-1)
 def present(target, source):
-    target = plyvel.DB(target).prefixed_db('sha')
-    sources = [(s, plyvel.DB(s).prefixed_db('sha')) for s in source]
+    target = plyvel.DB(target).prefixed_db(b'sha')
+    sources = [(s, plyvel.DB(s).prefixed_db(b'sha')) for s in source]
 
     for srcname, src  in sources:
         for sha, uris in src:

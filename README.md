@@ -1,22 +1,37 @@
 # mop
-Collection of CLI commands to help de-dupe, merge and manage files between local and remote systems
+Collection of CLI commands to help de-dupe, merge and manage files between local and remote systems. Mop follows the UNIX philosophy of combining commands together to build pipelines
 
 
-## Usage
+# Usage
+Mop uses index files to drive most operations.
 
-### Index Files
-Create a DB that indexes file metadata
+## Index Files
+It indexers for different collections of files
+
+### Backblaze
 ```
-./b2.py index --dbpath b2.db MyBucket
+./b2.py index --recursive --dbpath mybucket.db MyBucket
+```
+### Local filesystem
+```
 ./local.py index --dbpath somedir.db /home/myuser/somedir
 ```
+
 
 ### Backblaze: Hide files matching a RegEx
 
 ```
-./b2.py index --recursive MyBucket --dbpath b2.mybucket
 ./leveldb.py meta b2.mybucket | jq -r 'select(.path | test(".\\.DS_Store")) | .path' | ./b2.py hide MyBucket -
 ```
+
+### List files that are present in targetindex and source indexes 
+
+./leveldb.py present targetindex someindex1 someindex2
+
+
+### Hide files in a Bucket if they exist in another bucket
+
+/leveldb.py present treasurebox-memories sibsonmemories | cut -f 2 | ./b2.py hide sibsonmemories -
 ### Find duplicates
 
 Duplicates within a single tree
