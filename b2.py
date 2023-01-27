@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import sys
 from getpass import getpass
-import urllib
 
 from b2sdk.v1 import SqliteAccountInfo, B2Api
 from b2sdk.exception import FileAlreadyHidden, FileNotPresent
@@ -54,6 +53,8 @@ def index(bucket, dbpath, folder, recursive, flat, max_count):
 
     recursive = recursive and not flat
 
+    # wipe out existing DB because it might contain files that no longer exist
+    plyvel.destroy_db(dbpath)
     ldb = plyvel.DB(dbpath, create_if_missing=True)
     count = 0
     for fi, dirname in b2bucket.ls(folder_to_list=folder, recursive=recursive, fetch_count=max_count):
@@ -85,7 +86,7 @@ def hide(bucket, paths):
     for path in paths:
         path = path.strip('\n')
         if path.startswith('b2://'):
-            path = urllib.parse.urlparse(path).path[1:]
+            path = '/'.join(path.split('/')[3:])
         print(f'{path} ', end='')
         try:
             bucket.hide_file(path)
