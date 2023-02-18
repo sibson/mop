@@ -57,6 +57,7 @@ def index(bucket, dbpath, folder, recursive, flat, max_count):
     plyvel.destroy_db(dbpath)
     ldb = plyvel.DB(dbpath, create_if_missing=True)
     count = 0
+    size = 0
     for fi, dirname in b2bucket.ls(folder_to_list=folder, recursive=recursive, fetch_count=max_count):
         uri = f'b2://{bucket}/{fi.file_name}'
 
@@ -67,8 +68,9 @@ def index(bucket, dbpath, folder, recursive, flat, max_count):
         md = leveldb.FileMetaData(uri, sha, fi.file_name, fileName=fi.file_name, bucket=bucket, fileId=fi.id_)
         md.write(ldb)
         count += 1
+        size += fi.size
 
-    print(f'Total Files {count}')
+    print(f'Total {count} files, {size / 1024}MB')
 
 @cli.command()
 @click.argument('bucket')
