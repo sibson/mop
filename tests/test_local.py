@@ -118,3 +118,30 @@ class TestIndex:
                 assert result.exit_code == 0
                 assert 'nested_sha deep.txt' in result.output
                 assert mock_sha_db.put.call_count == 1
+
+    def test_index_skips_unreadable_file(self):
+        # regression: one unreadable file must not abort the whole walk
+        mock_ldb = MagicMock()
+        mock_sha_db = MagicMock()
+        mock_sha_db.get.return_value = b'[]'
+        mock_meta_db = MagicMock()
+        mock_ldb.prefixed_db.side_effect = lambda p: {
+            b'sha': mock_sha_db,
+            b'meta': mock_meta_db,
+        }.get(p, MagicMock())
+        mock_plyvel.DB.return_value = mock_ldb
+
+        with patch('local.os.walk') as mock_walk:
+            mock_walk.return_value = [
+                ('/base', [], ['bad.txt', 'good.txt']),
+            ]
+            with patch('local.sha1') as mock_sha1, \
+                 patch('local.os.path.getsize', return_value=42):
+                mock_sha1.side_effect = [PermissionError(13, 'denied'), 'good_sha']
+
+                runner = CliRunner()
+                result = runner.invoke(local_cli, ['index', '/base'])
+
+                assert result.exit_code == 0
+                assert 'good_sha good.txt' in result.output
+                assert mock_sha_db.put.call_count == 1

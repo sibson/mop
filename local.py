@@ -32,22 +32,39 @@ def sha1sum(path, recursive):
 
 @cli.command()
 @click.option('--dbpath', default='.mop.db')
+@click.option('--skip-existing', is_flag=True,
+              help='Skip files already present in the index (resume a partial run)')
 @click.argument('path')
-def index(dbpath, path):
+def index(dbpath, skip_existing, path):
     import plyvel
     ldb = plyvel.DB(dbpath, create_if_missing=True)
+    meta_db = ldb.prefixed_db(b'meta')
 
+    skipped = errored = 0
     for dirpath, dirnames, filenames in os.walk(path):
         for filename in filenames:
-            path = os.path.join(dirpath, filename)
-            path = os.path.abspath(path)
-            uri = f'file://{path}'
-            sha = sha1(path)
-            size = os.path.getsize(path)
+            fpath = os.path.abspath(os.path.join(dirpath, filename))
+            uri = f'file://{fpath}'
+
+            if skip_existing and meta_db.get(uri.encode()) is not None:
+                skipped += 1
+                continue
+
+            try:
+                sha = sha1(fpath)
+                size = os.path.getsize(fpath)
+            except OSError as e:
+                errored += 1
+                click.echo(f'SKIP {fpath}: {e}', err=True)
+                continue
 
             print(f'{sha} {filename}')
-            md = leveldb.FileMetaData(uri, sha, path, fileName=filename, size=size)
+            md = leveldb.FileMetaData(uri, sha, fpath, fileName=filename, size=size)
             md.write(ldb)
+
+    if skipped or errored:
+        click.echo(f'done: {skipped} already-indexed skipped, '
+                   f'{errored} unreadable skipped', err=True)
 
 
 if __name__ == '__main__':
