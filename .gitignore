@@ -1,6 +1,13 @@
 # mop stuff
 .mop.db
 db.*
+*.db/
+sibsonmemories/
+treasurebox-memories/
+list.memories
+hidden.files
+hidden.log
+.DS_Store
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

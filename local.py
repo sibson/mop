@@ -3,7 +3,6 @@
 import os, hashlib
 
 import click
-import plyvel
 
 import leveldb
 
@@ -22,6 +21,7 @@ def cli():
 
 
 @cli.command()
+@click.argument('path')
 @click.option('--recursive')
 def sha1sum(path, recursive):
     for dirpath, dirnames, filenames in os.walk(path):
@@ -33,7 +33,8 @@ def sha1sum(path, recursive):
 @cli.command()
 @click.option('--dbpath', default='.mop.db')
 @click.argument('path')
-def index(dbpath, path, recurse=False):
+def index(dbpath, path):
+    import plyvel
     ldb = plyvel.DB(dbpath, create_if_missing=True)
 
     for dirpath, dirnames, filenames in os.walk(path):
