@@ -39,9 +39,10 @@ cleanup run never risks committing personal data or B2 index state.
   on the filesystem instead; adding `size` to local metadata would duplicate
   data the filesystem already tracks for free.
 
-## Known unrelated issue (not this doc's scope, flagging so it isn't lost)
+## Fixed: `leveldb.py ls` required a wildcard it shouldn't have
 
-`tests/test_leveldb.py::TestCliCommands::test_ls_command` fails on current
-`main` — `leveldb.py ls` invoked with just a dbpath (no wildcard) exits 2
-despite `wildcard` being declared `@click.argument('wildcard', default=None)`.
-Pre-existing, unrelated to the `hide` work above; worth its own fix.
+`leveldb.py ls` exited 2 when called with just a dbpath. Root cause: Click's
+`Argument.required` defaults to `True` even when `default=None` is passed — only
+an explicit `required=False` makes it optional. Fixed at `leveldb.py:101`
+(`@click.argument('wildcard', required=False)`). Unrelated to the `hide` work
+above; was caught by the test suite while landing it.

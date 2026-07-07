@@ -98,7 +98,7 @@ def truncate(dbpath):
 
 @cli.command()
 @click.argument('dbpath')
-@click.argument('wildcard', default=None)
+@click.argument('wildcard', required=False)
 def ls(dbpath, wildcard):
     import plyvel
     ldb = plyvel.DB(dbpath)
