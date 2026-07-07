@@ -51,7 +51,8 @@ class TestIndex:
             mock_walk.return_value = [
                 ('/base', [], ['a.txt', 'b.jpg']),
             ]
-            with patch('local.sha1') as mock_sha1:
+            with patch('local.sha1') as mock_sha1, \
+                 patch('local.os.path.getsize', return_value=42):
                 mock_sha1.side_effect = ['sha_a', 'sha_b']
 
                 runner = CliRunner()
@@ -79,7 +80,8 @@ class TestIndex:
             mock_walk.return_value = [
                 ('/pics', [], ['photo.jpg']),
             ]
-            with patch('local.sha1') as mock_sha1:
+            with patch('local.sha1') as mock_sha1, \
+                 patch('local.os.path.getsize', return_value=42):
                 mock_sha1.return_value = 'deadbeef'
 
                 runner = CliRunner()
@@ -106,7 +108,8 @@ class TestIndex:
                 ('/base', ['sub'], []),
                 ('/base/sub', [], ['deep.txt']),
             ]
-            with patch('local.sha1') as mock_sha1:
+            with patch('local.sha1') as mock_sha1, \
+                 patch('local.os.path.getsize', return_value=42):
                 mock_sha1.return_value = 'nested_sha'
 
                 runner = CliRunner()

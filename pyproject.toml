@@ -1,0 +1,23 @@
+[project]
+name = "mop"
+version = "0.1.0"
+description = "CLI commands to de-dupe, merge and manage files between local and remote systems"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "b2sdk",
+    "click",
+    "plyvel",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+]
+
+[tool.uv]
+# plyvel links against the system leveldb (Homebrew: `brew install leveldb`).
+# Homebrew's leveldb is built -fno-rtti, so plyvel must be compiled the same way
+# or `import plyvel` fails at runtime with a missing `leveldb::Comparator`
+# typeinfo symbol. `make setup` (or `make plyvel`) rebuilds plyvel with the
+# matching flag. See the Makefile / README.

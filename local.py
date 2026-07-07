@@ -43,9 +43,10 @@ def index(dbpath, path):
             path = os.path.abspath(path)
             uri = f'file://{path}'
             sha = sha1(path)
+            size = os.path.getsize(path)
 
             print(f'{sha} {filename}')
-            md = leveldb.FileMetaData(uri, sha, path, fileName=filename)
+            md = leveldb.FileMetaData(uri, sha, path, fileName=filename, size=size)
             md.write(ldb)
 
 

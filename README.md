@@ -2,16 +2,30 @@
 Collection of CLI commands to help de-dupe, merge and manage files between local and remote systems. Mop follows the UNIX philosophy of combining commands together to build pipelines
 
 
-# Quick Start
+# Setup
+
+Managed with [uv](https://docs.astral.sh/uv/). `plyvel` links against the system
+leveldb, so install that first:
 
 ```
-./mopcli.py --help
+brew install leveldb          # macOS
+make setup                     # uv sync + rebuild plyvel matched to leveldb
+```
+
+`make setup` is needed because Homebrew's leveldb is built `-fno-rtti`; plyvel
+must be compiled the same way or `import plyvel` fails at runtime on a missing
+`leveldb::Comparator` typeinfo symbol. The `plyvel` make target handles that.
+
+Run commands via `uv run`:
+
+```
+uv run mopcli.py --help
 ```
 
 Or use individual scripts:
-- `./b2.py` — Backblaze B2 operations
-- `./local.py` — Local filesystem operations
-- `./leveldb.py` — Index database analysis
+- `uv run b2.py` — Backblaze B2 operations
+- `uv run local.py` — Local filesystem operations
+- `uv run leveldb.py` — Index database analysis
 
 
 ## Indexing
@@ -101,5 +115,5 @@ meta'URI': {METADATA}
 ## Testing
 
 ```
-python3 -m pytest tests/ -v
+make test          # or: uv run pytest tests/ -v
 ```
