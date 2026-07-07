@@ -3,7 +3,7 @@ revision = 3
 requires-python = ">=3.11"
 
 [options]
-exclude-newer = "2026-06-30T03:23:35.249345Z"
+exclude-newer = "2026-06-30T17:28:43.604131Z"
 exclude-newer-span = "P7D"
 
 [[package]]
@@ -183,7 +183,6 @@ source = { virtual = "." }
 dependencies = [
     { name = "b2sdk" },
     { name = "click" },
-    { name = "plyvel" },
 ]
 
 [package.dev-dependencies]
@@ -195,7 +194,6 @@ dev = [
 requires-dist = [
     { name = "b2sdk" },
     { name = "click" },
-    { name = "plyvel" },
 ]
 
 [package.metadata.requires-dev]
@@ -217,16 +215,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/f9/e2/3e91f31a7d2b083fe6ef3fa267035b518369d9511ffab804f839851d2779/pluggy-1.6.0.tar.gz", hash = "sha256:7dcc130b76258d33b90f61b658791dede3486c3e6bfb003ee5c9bfb396dd22f3", size = 69412, upload-time = "2025-05-15T12:30:07.975Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/54/20/4d324d65cc6d9205fabedc306948156824eb9f0ee1633355a8f7ec5c66bf/pluggy-1.6.0-py3-none-any.whl", hash = "sha256:e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746", size = 20538, upload-time = "2025-05-15T12:30:06.134Z" },
-]
-
-[[package]]
-name = "plyvel"
-version = "1.5.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/4b/b0/23f0cc21c943355fc5d49f1933e97812269d7a865daef5b9758b62902d46/plyvel-1.5.1.tar.gz", hash = "sha256:3caf6009e4fc24fbf8712d3f5ef3da7e56495c26a488df2161218fc34e46019c", size = 200128, upload-time = "2024-01-15T17:33:55.681Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d6/66/c3f3cde6e34609aae299aa0eaf73b8c6b6a65471eaee453f0b464c0046bb/plyvel-1.5.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:54f364f566470f5acaed0a00fea8860736120a711214190a17ee73dcbe1a2261", size = 946187, upload-time = "2024-01-15T17:33:46.438Z" },
-    { url = "https://files.pythonhosted.org/packages/87/c2/0928017d85aa76dadb5afe4092eedd37ae68ec5b9cfbe7993e520d705a98/plyvel-1.5.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8b26b09d6ae9c679c877153aa4bd7f763e5e983a61b7c0c955653e7a494b6126", size = 937804, upload-time = "2024-01-15T17:33:48.09Z" },
 ]
 
 [[package]]

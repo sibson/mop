@@ -4,7 +4,7 @@ import os, hashlib
 
 import click
 
-import leveldb
+import store
 
 
 def sha1(filename, num_blocks=128):
@@ -36,9 +36,7 @@ def sha1sum(path, recursive):
               help='Skip files already present in the index (resume a partial run)')
 @click.argument('path')
 def index(dbpath, skip_existing, path):
-    import plyvel
-    ldb = plyvel.DB(dbpath, create_if_missing=True)
-    meta_db = ldb.prefixed_db(b'meta')
+    conn = store.connect(dbpath, create=True)
 
     skipped = errored = 0
     for dirpath, dirnames, filenames in os.walk(path):
@@ -46,7 +44,8 @@ def index(dbpath, skip_existing, path):
             fpath = os.path.abspath(os.path.join(dirpath, filename))
             uri = f'file://{fpath}'
 
-            if skip_existing and meta_db.get(uri.encode()) is not None:
+            if skip_existing and conn.execute(
+                    'SELECT 1 FROM files WHERE uri=?', (uri,)).fetchone() is not None:
                 skipped += 1
                 continue
 
@@ -59,8 +58,11 @@ def index(dbpath, skip_existing, path):
                 continue
 
             print(f'{sha} {filename}')
-            md = leveldb.FileMetaData(uri, sha, fpath, fileName=filename, size=size)
-            md.write(ldb)
+            md = store.FileMetaData(uri, sha, fpath, fileName=filename, size=size)
+            md.write(conn)
+
+    conn.commit()
+    conn.close()
 
     if skipped or errored:
         click.echo(f'done: {skipped} already-indexed skipped, '

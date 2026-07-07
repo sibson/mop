@@ -1,20 +1,15 @@
-LEVELDB_PREFIX ?= $(shell brew --prefix leveldb 2>/dev/null)
+.PHONY: setup test bench
 
-.PHONY: setup plyvel test
-
-# Full environment setup: resolve deps, then rebuild plyvel matched to leveldb.
-setup: plyvel
-
-# uv sync installs plyvel from a default build that assumes an -frtti leveldb.
-# Homebrew's leveldb is -fno-rtti, so we force-rebuild plyvel with the matching
-# flag; otherwise `import plyvel` dies on a missing leveldb::Comparator typeinfo.
-plyvel:
+# The index store is native sqlite (stdlib) — no system libraries to build.
+setup:
 	uv sync
-	CPATH="$(LEVELDB_PREFIX)/include" \
-	LIBRARY_PATH="$(LEVELDB_PREFIX)/lib" \
-	CFLAGS="-fno-rtti" CXXFLAGS="-fno-rtti" \
-	uv pip install --force-reinstall --no-binary plyvel --no-cache plyvel
-	uv run python -c "import plyvel; print('plyvel OK')"
 
 test:
 	uv run pytest tests/ -v
+
+# Run the perf benchmark harness with default corpus sizes and record the
+# result under bench/results/<backend-label>.json. Override sizes on the CLI,
+# e.g.  make bench BENCH_ARGS="--n 10000 --k 1000"
+BENCH_ARGS ?=
+bench:
+	uv run bench.py --backend-label store $(BENCH_ARGS)

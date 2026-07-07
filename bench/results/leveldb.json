@@ -1,0 +1,70 @@
+{
+  "backend_label": "leveldb",
+  "backend_module": "leveldb",
+  "index_group": "leveldb",
+  "n": 100000,
+  "dup": 0.1,
+  "k": 5000,
+  "python_version": "3.14.3",
+  "git_sha": "cc74caf1e9ebda72f0232ff64bef4bb84bbdba9a",
+  "timestamp_utc": 1783433138,
+  "seed": 1234567,
+  "warmup_runs": 1,
+  "timed_runs": 3,
+  "phases": {
+    "1_store_write": {
+      "median_s": 1.3179942079586908,
+      "min_s": 1.3124093749793246,
+      "max_s": 1.3194595840759575,
+      "files_per_sec": 75872.8675711557,
+      "n": 100000
+    },
+    "2_db_size": {
+      "bytes": 17002686
+    },
+    "3_ls": {
+      "median_s": 0.22811258397996426,
+      "min_s": 0.2250504579860717,
+      "max_s": 0.23383316595572978
+    },
+    "4_meta": {
+      "median_s": 0.18470566696487367,
+      "min_s": 0.18065654195379466,
+      "max_s": 0.18901837500743568
+    },
+    "5_dupes": {
+      "median_s": 0.19779966690111905,
+      "min_s": 0.19507658295333385,
+      "max_s": 0.2065382500877604
+    },
+    "6_usage": {
+      "median_s": 0.2765704579651356,
+      "min_s": 0.2751288340659812,
+      "max_s": 0.2768911669263616
+    },
+    "7_missing": "SKIPPED: exit 1: TypeError: missing() got an unexpected keyword argument 'source'. Did you mean 'sources'?",
+    "7_present": {
+      "median_s": 0.23908437509089708,
+      "min_s": 0.22968820796813816,
+      "max_s": 0.25826137501280755
+    },
+    "8_merge": {
+      "median_s": 1.306657708948478,
+      "min_s": 1.3056820830097422,
+      "max_s": 1.3427109170006588,
+      "extra": {
+        "result_lines": 50000
+      }
+    },
+    "9_e2e_index": {
+      "median_s": 0.3153586669359356,
+      "min_s": 0.3149549999507144,
+      "max_s": 0.3179919159738347,
+      "extra": {
+        "lines": 5000
+      },
+      "files_per_sec": 15854.963012688466,
+      "k": 5000
+    }
+  }
+}

@@ -4,17 +4,12 @@ Collection of CLI commands to help de-dupe, merge and manage files between local
 
 # Setup
 
-Managed with [uv](https://docs.astral.sh/uv/). `plyvel` links against the system
-leveldb, so install that first:
+Managed with [uv](https://docs.astral.sh/uv/). The index store is native SQLite
+(Python stdlib) — no system libraries to build:
 
 ```
-brew install leveldb          # macOS
-make setup                     # uv sync + rebuild plyvel matched to leveldb
+make setup                     # uv sync
 ```
-
-`make setup` is needed because Homebrew's leveldb is built `-fno-rtti`; plyvel
-must be compiled the same way or `import plyvel` fails at runtime on a missing
-`leveldb::Comparator` typeinfo symbol. The `plyvel` make target handles that.
 
 Run commands via `uv run`:
 
@@ -25,7 +20,7 @@ uv run mopcli.py --help
 Or use individual scripts:
 - `uv run b2.py` — Backblaze B2 operations
 - `uv run local.py` — Local filesystem operations
-- `uv run leveldb.py` — Index database analysis
+- `uv run store.py` — Index database analysis
 
 
 ## Indexing
@@ -49,7 +44,7 @@ Or use individual scripts:
 
 ### From an indexed database (requires `size` in metadata)
 ```
-./leveldb.py usage --top 20 --csv mybucket.db
+./store.py usage --top 20 --csv mybucket.db
 ```
 
 
@@ -57,22 +52,22 @@ Or use individual scripts:
 
 ### List files present in targetindex AND source indexes
 ```
-./leveldb.py present targetindex someindex1 someindex2
+./store.py present targetindex someindex1 someindex2
 ```
 
 ### List files missing from targetindex but present in sources
 ```
-./leveldb.py missing targetindex someindex1 someindex2
+./store.py missing targetindex someindex1 someindex2
 ```
 
 ### Find duplicates within a single index
 ```
-./leveldb.py dupes mybucket.db
+./store.py dupes mybucket.db
 ```
 
 ### Merge indexes
 ```
-./leveldb.py merge targetindex sourceindex1 sourceindex2
+./store.py merge targetindex sourceindex1 sourceindex2
 ```
 
 
@@ -80,12 +75,12 @@ Or use individual scripts:
 
 ### Hide files matching a RegEx
 ```
-./leveldb.py meta b2.mybucket | jq -r 'select(.path | test(".\\.DS_Store")) | .path' | ./b2.py hide MyBucket -
+./store.py meta b2.mybucket | jq -r 'select(.path | test(".\\.DS_Store")) | .path' | ./b2.py hide MyBucket -
 ```
 
 ### Hide files in a Bucket if they exist in another bucket
 ```
-./leveldb.py present treasurebox-memories sibsonmemories | cut -f 2 | ./b2.py hide sibsonmemories -
+./store.py present treasurebox-memories sibsonmemories | cut -f 2 | ./b2.py hide sibsonmemories -
 ```
 
 
@@ -93,10 +88,25 @@ Or use individual scripts:
 
 ## DB Format
 
+A single SQLite file. One row per indexed file, keyed by URI (its location);
+`sha1` (the content hash) is an indexed column, so duplicate detection and
+cross-index present/missing are derived by query rather than a separately
+maintained index.
+
+```sql
+CREATE TABLE files (
+    uri   TEXT PRIMARY KEY,   -- location, e.g. b2://bucket/path or file:///path
+    sha1  TEXT NOT NULL,      -- content hash (dedup / cross-index key)
+    path  TEXT NOT NULL,
+    size  INTEGER,            -- bytes; NULL when unknown
+    extra TEXT                -- JSON: fileName, bucket, fileId, ... (NULL if none)
+);
+CREATE INDEX idx_files_sha1 ON files(sha1);
 ```
-sha'SHA': [URI]
-meta'URI': {METADATA}
-```
+
+`merge` is target-wins: a source never overwrites an existing target URI. When a
+source disagrees on a URI's `sha1`, the target value is kept and the conflict is
+reported on stderr.
 
 ## Metadata
 

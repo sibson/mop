@@ -7,7 +7,7 @@ from b2sdk.v1.exception import FileAlreadyHidden, FileNotPresent
 import click
 
 
-import leveldb
+import store
 
 
 @click.group()
@@ -47,7 +47,7 @@ def sha1sum(folder, recursive, max_count, bucket):
 @click.option('--flat', is_flag=True)
 @click.option('--max-count', default=10000)
 def index(bucket, dbpath, folder, recursive, flat, max_count):
-    import plyvel
+    import os
 
     info = SqliteAccountInfo()
     b2 = B2Api(info)
@@ -56,8 +56,12 @@ def index(bucket, dbpath, folder, recursive, flat, max_count):
     recursive = recursive and not flat
 
     # wipe out existing DB because it might contain files that no longer exist
-    plyvel.destroy_db(dbpath)
-    ldb = plyvel.DB(dbpath, create_if_missing=True)
+    for p in (dbpath, dbpath + '-wal', dbpath + '-shm'):
+        try:
+            os.remove(p)
+        except FileNotFoundError:
+            pass
+    conn = store.connect(dbpath, create=True)
     count = 0
     size = 0
     for fi, dirname in b2bucket.ls(folder_to_list=folder, recursive=recursive, fetch_count=max_count):
@@ -67,11 +71,13 @@ def index(bucket, dbpath, folder, recursive, flat, max_count):
         sha = fi.content_sha1 if fi.content_sha1 != 'none' else fi.file_info['large_file_sha1']
 
         print(f'{sha} {fi.file_name} {fi.size / 1024 / 1024:.1f}Mb')
-        md = leveldb.FileMetaData(uri, sha, fi.file_name, fileName=fi.file_name, bucket=bucket, fileId=fi.id_, size=fi.size)
-        md.write(ldb)
+        md = store.FileMetaData(uri, sha, fi.file_name, fileName=fi.file_name, bucket=bucket, fileId=fi.id_, size=fi.size)
+        md.write(conn)
         count += 1
         size += fi.size
 
+    conn.commit()
+    conn.close()
     print(f'Total {count} files, {size / 1024 / 1024}MB')
 
 

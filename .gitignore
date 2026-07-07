@@ -1,7 +1,11 @@
 # mop stuff
 .mop.db
+migrated/
+bench/tmp/
 db.*
 *.db/
+*.db
+*.sqlite
 sibsonmemories/
 treasurebox-memories/
 list.memories
