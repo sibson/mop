@@ -160,8 +160,10 @@ def trash(root, trash_dir, dry_run, paths):
 @click.option('--removable-prefix', default='NEW/Seagate Exp/',
               help='Only files under this (root-relative) prefix are candidates for removal')
 @click.option('--trash-dir', default='.trash')
+@click.option('--limit', type=int, default=0,
+              help='Stop after N confirmed removals (0 = all); useful for a cautious first batch')
 @click.option('--apply', is_flag=True, help='Trash confirmed dupes (default: dry run, change nothing)')
-def dedup(dbpath, root, removable_prefix, trash_dir, apply):
+def dedup(dbpath, root, removable_prefix, trash_dir, limit, apply):
     """Trash exact duplicates, re-verifying content with a FRESH hash.
 
     The index is used only to find candidate groups (files sharing a recorded
@@ -191,7 +193,10 @@ def dedup(dbpath, root, removable_prefix, trash_dir, apply):
     confirmed = mismatch = missing = nosurv = 0
     bytes_freed = 0
     log_lines = []
+    reached_limit = False
     for (sha,) in groups:
+        if reached_limit:
+            break
         rows = conn.execute('SELECT uri, size FROM files WHERE sha1 = ?', (sha,)).fetchall()
         removable, survivors = [], []
         for uri, size in rows:
@@ -228,6 +233,9 @@ def dedup(dbpath, root, removable_prefix, trash_dir, apply):
                     click.echo(f'ERROR {rrel}: {e}', err=True)
             else:
                 click.echo(f'would trash: {rrel}')
+            if limit and confirmed >= limit:
+                reached_limit = True
+                break
 
     _flush_log(root, trash_dir, log_lines)
     click.echo(f'{"" if apply else "dry-run: "}{confirmed} confirmed '

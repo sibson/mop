@@ -296,3 +296,17 @@ class TestDedup:
         import os
         assert os.path.exists(os.path.join(root, 'NEW/Seagate Exp/a/p.jpg'))
         assert os.path.exists(os.path.join(root, 'NEW/Seagate Exp/b/p.jpg'))
+
+    def test_limit_stops_after_n(self, tmp_path, runner):
+        root, db = self._indexed(tmp_path, runner, {
+            '2015/a.jpg': b'aaa', 'NEW/Seagate Exp/a.jpg': b'aaa',
+            '2015/b.jpg': b'bbb', 'NEW/Seagate Exp/b.jpg': b'bbb',
+        })
+        r = runner.invoke(local_cli,
+                          ['dedup', '--dbpath', db, '--root', root, '--apply', '--limit', '1'])
+        assert r.exit_code == 0
+        assert '1 confirmed' in r.output
+        import os
+        trashed = [os.path.exists(os.path.join(root, '.trash/NEW/Seagate Exp/a.jpg')),
+                   os.path.exists(os.path.join(root, '.trash/NEW/Seagate Exp/b.jpg'))]
+        assert sum(trashed) == 1  # stopped after exactly one
