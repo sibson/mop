@@ -62,6 +62,23 @@ live in
   for local DB/dir naming in this repo. Confirm the exact name before running
   `b2.py` against it.
 
+### 1.4 Scale, and where to run the index
+
+Measured by a `find` scan on 2026-07-06: **~414 GB across 72,324 files**, of
+which 19 were zero-byte and 43 were `.DS_Store`.
+
+From the laptop the archive is mounted over samba/CIFS at `/Volumes/Memories`
+(`//marcs@treasurebox.local/Memories`); `/srv/shares/memories` above is the
+canonical path on the host itself.
+
+**Run `local.py index` on the treasurebox host, not over the mount.** Indexing
+across CIFS is network-bound at roughly 8.5 MB/s, which works out to ~13 hours
+for a full hash. That is latency on many small files plus samba overhead, not a
+mop limitation — the same run against local disk on the host is not comparable.
+If a slow run over the mount is acceptable anyway, wrap it in
+`caffeinate -s -i -w <pid>` so the laptop sleeping doesn't drop the mount and
+kill the job partway through.
+
 ---
 
 ## 2. Findings and Supporting Reasoning
