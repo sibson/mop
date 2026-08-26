@@ -122,14 +122,20 @@ One run of `ingest.sh PATH` does, in order:
      `-2`, etc. before the extension — first free name wins. No overwrites,
      ever.
 
-6. **Fold moved files into the durable archive index.**
+6. **Fold moved files into the durable archive index.** For each *distinct*
+   `YEAR` a file was actually moved into this run:
    ```
-   $MOP local index --dbpath $ARCHIVE_DB --skip-existing "$ROOT"
+   $MOP local index --dbpath $ARCHIVE_DB --skip-existing "$ROOT/$YEAR"
    ```
-   `--skip-existing` means the ~414 GB of already-indexed archive content
-   costs a directory walk and a per-file existence check, not a rehash. Only
-   the files moved in step 5 (new uris under `$ROOT/$YEAR/...`) get hashed —
-   and only once, ever, for their new location.
+   This is scoped to the touched year folders, not the whole `$ROOT` —
+   reindexing the whole root would also walk `.trash/` and `.ingest/`
+   (mop's own db files), which would pollute the archive index with
+   trashed-content hashes. That's a real correctness bug, not just waste: a
+   later legitimate arrival identical to something already trashed would
+   then be wrongly flagged as already-archived and deduped away, even
+   though no live copy exists. Scoping to touched year folders avoids it
+   entirely, and is cheaper besides — no need to stat the untouched 400+ GB
+   of the rest of the archive on every run.
 
 ## 4. `--dry-run`
 
