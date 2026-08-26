@@ -73,11 +73,23 @@ One run of `ingest.sh PATH` does, in order:
 2. **Dedupe within the batch.** Two files new to this ingest that are
    byte-identical to each other (but not yet in the archive) should not both
    be filed as separate archive copies.
+
+   `store dupes` is **not used here**: it joins multiple URIs per group with
+   a plain space (`GROUP_CONCAT(uri, ' ')`), and this share's paths are full
+   of literal spaces ("Wedding Videos", "HD Files", ...) with no
+   percent-encoding — splitting that output on space is ambiguous and can
+   misparse which file is which. Confirmed by direct test against a
+   space-containing fixture path.
+
+   Instead, use `store ls`, which prints one `sha1<TAB>uri` per line, sorted
+   by sha1 — safe to group by adjacent lines regardless of spaces:
    ```
-   $MOP store dupes $NEW_DB
+   $MOP store ls $NEW_DB
    ```
-   Output is `sha1<TAB>uri1 uri2 ...` per group. For each group with more
-   than one uri: keep the first (sorted), trash the rest via
+   Walking that output: each time the sha1 changes from the previous line,
+   the uri on that line is the keeper (skip it); every subsequent line with
+   the *same* sha1 as the line before it is a duplicate — collect its uri
+   for trashing. Trash the collected list via
    ```
    $MOP local trash --root "$ROOT" -
    ```
