@@ -168,6 +168,25 @@ deliberately with a specific path argument.)
   destination filename with different content — it does not try to detect
   that case specially, it simply never overwrites.
 - **No automated scheduling.** Run by hand for now (§1).
+- **Extension-less filenames.** The collision-naming split (`${filename%.*}`
+  / `${filename##*.}`) degrades for a file with no extension — both halves
+  end up equal to the whole filename, producing a `name.name` candidate. In
+  practice unreachable for photo/video files, which always carry an
+  extension, but a real limitation of the code as written.
+- **Dry-run under-reports same-batch collisions.** `next_free_name`'s check
+  is `[ -e "$candidate" ]` — real, on-disk state. Under `--dry-run` nothing
+  is actually moved, so two different net-new files destined for the same
+  year and filename in the *same* run won't show the `-1` suffix a real run
+  would apply; the dry-run preview is only exact when no in-batch collision
+  exists.
+- **SQLite WAL mode on the SMB mount is unverified.** `store.connect` sets
+  `PRAGMA journal_mode=WAL` unconditionally, and `/Volumes/Memories` is
+  mounted via `smbfs` — WAL is not supported on network filesystems in
+  general. Every test in this design ran against local APFS; nothing has
+  yet exercised `archive.db`/`new.db` actually living on the mount over a
+  long run. Probe this with a throwaway db before committing to a
+  multi-hour real run over CIFS, and prefer running on the treasurebox host
+  against local disk once that's set up (§1).
 
 ## 6. Testing
 
