@@ -89,6 +89,17 @@ class FileMetaData(object):
             (self.uri, self.sha1, self.path, size, extra_json))
 
 
+def _like_prefix(prefix):
+    """Escape a literal path prefix for SQL LIKE, then append the wildcard.
+
+    Paths routinely contain LIKE's own metacharacters (_ is far more common
+    than % in real filenames, but both appear) -- without escaping, a prefix
+    like 'NEW/USB_Drive/' would also match 'NEW/USBXDrive/'.
+    """
+    escaped = prefix.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+    return escaped + '%'
+
+
 def _row_to_json(uri, path, sha1, size, extra):
     """Reconstruct the meta JSON blob in the same key order as __json__:
     uri, path, sha1, then extra kwkeys (in stored order), then size (if set).
@@ -138,9 +149,18 @@ def truncate(dbpath):
 @cli.command()
 @click.argument('dbpath')
 @click.argument('wildcard', required=False)
-def ls(dbpath, wildcard):
+@click.option('--prefix', default=None,
+              help='Only list uris starting with this literal prefix (e.g. '
+                   'file:///srv/shares/memories/NEW/MarcBook/)')
+def ls(dbpath, wildcard, prefix):
     conn = connect(dbpath)
-    for sha1, uri in conn.execute('SELECT sha1, uri FROM files ORDER BY sha1'):
+    if prefix:
+        rows = conn.execute(
+            "SELECT sha1, uri FROM files WHERE uri LIKE ? ESCAPE '\\' ORDER BY sha1",
+            (_like_prefix(prefix),))
+    else:
+        rows = conn.execute('SELECT sha1, uri FROM files ORDER BY sha1')
+    for sha1, uri in rows:
         if wildcard and not fnmatch.fnmatch(uri, wildcard):
             continue
         print(f'{sha1}\t{uri}')
@@ -160,14 +180,19 @@ def meta(dbpath):
 @cli.command()
 @click.argument('target')
 @click.argument('source', nargs=-1)
-def missing(target, source):
+@click.option('--prefix', default=None,
+              help='Only consider source uris starting with this literal prefix')
+def missing(target, source, prefix):
     conn = connect(target)
     for srcname in source:
         conn.execute('ATTACH DATABASE ? AS src', (srcname,))
-        rows = conn.execute(
-            'SELECT sha1, uri FROM src.files '
-            'WHERE sha1 NOT IN (SELECT sha1 FROM main.files)')
-        for sha1, uri in rows:
+        query = ('SELECT sha1, uri FROM src.files '
+                  'WHERE sha1 NOT IN (SELECT sha1 FROM main.files)')
+        params = ()
+        if prefix:
+            query += " AND uri LIKE ? ESCAPE '\\'"
+            params = (_like_prefix(prefix),)
+        for sha1, uri in conn.execute(query, params):
             print(f'{srcname}\t{uri}')
         conn.execute('DETACH DATABASE src')
     conn.close()
@@ -176,14 +201,19 @@ def missing(target, source):
 @cli.command()
 @click.argument('target')
 @click.argument('source', nargs=-1)
-def present(target, source):
+@click.option('--prefix', default=None,
+              help='Only consider source uris starting with this literal prefix')
+def present(target, source, prefix):
     conn = connect(target)
     for srcname in source:
         conn.execute('ATTACH DATABASE ? AS src', (srcname,))
-        rows = conn.execute(
-            'SELECT sha1, uri FROM src.files '
-            'WHERE sha1 IN (SELECT sha1 FROM main.files)')
-        for sha1, uri in rows:
+        query = ('SELECT sha1, uri FROM src.files '
+                  'WHERE sha1 IN (SELECT sha1 FROM main.files)')
+        params = ()
+        if prefix:
+            query += " AND uri LIKE ? ESCAPE '\\'"
+            params = (_like_prefix(prefix),)
+        for sha1, uri in conn.execute(query, params):
             print(f'{srcname}\t{uri}')
         conn.execute('DETACH DATABASE src')
     conn.close()

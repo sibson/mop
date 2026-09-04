@@ -164,6 +164,28 @@ class TestCliCommands:
         assert 'abc123\tb2://bucket/a.txt' in result.output
         assert 'b.txt' not in result.output
 
+    def test_ls_command_with_prefix(self, seed, runner):
+        path = seed('lsp.db', [
+            ('file:///a/NEW/2010/x.jpg', 'abc', 'x.jpg'),
+            ('file:///a/NEW/Olympus/y.jpg', 'def', 'y.jpg'),
+        ])
+        result = runner.invoke(cli, ['ls', path, '--prefix', 'file:///a/NEW/2010/'])
+        assert result.exit_code == 0
+        assert 'abc\tfile:///a/NEW/2010/x.jpg' in result.output
+        assert 'Olympus' not in result.output
+
+    def test_ls_command_prefix_escapes_like_metacharacters(self, seed, runner):
+        # A literal '_' in the prefix must not act as a SQL LIKE wildcard
+        # (which would also match 'USBXDrive').
+        path = seed('lspe.db', [
+            ('file:///a/USB_Drive/x.jpg', 'abc', 'x.jpg'),
+            ('file:///a/USBXDrive/y.jpg', 'def', 'y.jpg'),
+        ])
+        result = runner.invoke(cli, ['ls', path, '--prefix', 'file:///a/USB_Drive/'])
+        assert result.exit_code == 0
+        assert 'USB_Drive' in result.output
+        assert 'USBXDrive' not in result.output
+
     def test_meta_command(self, seed, runner):
         path = seed('meta.db', [
             ('u1', 's1', 'p1'),
@@ -276,6 +298,30 @@ class TestCrossDbCommands:
         assert result.exit_code == 0
         assert f'{source}\tb2://bucket/file.txt' in result.output
         assert 'other.txt' not in result.output
+
+    def test_missing_command_with_prefix(self, seed, runner):
+        # Two sha's are absent from target; --prefix restricts which of the
+        # source's uris are even considered, independent of the sha1 match.
+        target = seed('t_missing_p.db', [('t1', 'have', 'p')])
+        source = seed('s_missing_p.db', [
+            ('file:///NEW/2010/a.jpg', 'gone_a', 'a.jpg'),
+            ('file:///NEW/Olympus/b.jpg', 'gone_b', 'b.jpg'),
+        ])
+        result = runner.invoke(cli, ['missing', target, source, '--prefix', 'file:///NEW/2010/'])
+        assert result.exit_code == 0
+        assert f'{source}\tfile:///NEW/2010/a.jpg' in result.output
+        assert 'Olympus' not in result.output
+
+    def test_present_command_with_prefix(self, seed, runner):
+        target = seed('t_present_p.db', [('t1', 'shared', 'p')])
+        source = seed('s_present_p.db', [
+            ('file:///NEW/2010/a.jpg', 'shared', 'a.jpg'),
+            ('file:///NEW/Olympus/b.jpg', 'shared', 'b.jpg'),
+        ])
+        result = runner.invoke(cli, ['present', target, source, '--prefix', 'file:///NEW/2010/'])
+        assert result.exit_code == 0
+        assert f'{source}\tfile:///NEW/2010/a.jpg' in result.output
+        assert 'Olympus' not in result.output
 
     def test_merge_command(self, seed, runner):
         target = seed('t_merge.db', [('t_existing', 'sx', 'px')])
