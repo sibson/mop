@@ -234,6 +234,23 @@ class TestTrash:
         assert os.path.exists(os.path.join(root, '.trash/one.txt'))
         assert os.path.exists(os.path.join(root, '.trash/two.txt'))
 
+    def test_prune_prefix_allows_matching_path(self, tmp_path, runner):
+        root = _tree(tmp_path, {'NEW/x.txt': b'x'})
+        r = runner.invoke(local_cli, ['trash', '--root', root,
+                                       '--prune-prefix', 'NEW/', 'NEW/x.txt'])
+        assert r.exit_code == 0
+        import os
+        assert os.path.exists(os.path.join(root, '.trash/NEW/x.txt'))
+
+    def test_prune_prefix_refuses_path_outside_it(self, tmp_path, runner):
+        root = _tree(tmp_path, {'2020/keep.txt': b'x'})
+        r = runner.invoke(local_cli, ['trash', '--root', root,
+                                       '--prune-prefix', 'NEW/', '2020/keep.txt'])
+        assert r.exit_code == 0
+        assert 'outside-prefix' in r.output
+        import os
+        assert os.path.exists(os.path.join(root, '2020/keep.txt'))
+
 
 class TestDedup:
 
@@ -285,7 +302,7 @@ class TestDedup:
         assert os.path.exists(os.path.join(root, 'NEW/Seagate Exp/p.jpg'))  # not trashed
 
     def test_no_survivor_outside_prefix_is_skipped(self, tmp_path, runner):
-        # both copies live under the removable prefix -> nothing is safe to remove
+        # both copies live under the prune prefix -> nothing is safe to remove
         root, db = self._indexed(tmp_path, runner, {
             'NEW/Seagate Exp/a/p.jpg': b'dup',
             'NEW/Seagate Exp/b/p.jpg': b'dup',

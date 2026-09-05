@@ -79,7 +79,7 @@ def index(dbpath, skip_existing, path):
 # every move is appended to <trash-dir>/trashed.log.
 # ---------------------------------------------------------------------------
 
-def _resolve_under_root(root, raw, trash_dir, removable_prefix=None):
+def _resolve_under_root(root, raw, trash_dir, prune_prefix=None):
     """Map an input path to (abspath, rel-to-root), or (None, reason)."""
     src = raw[len('file://'):] if raw.startswith('file://') else raw
     if not os.path.isabs(src):
@@ -90,7 +90,7 @@ def _resolve_under_root(root, raw, trash_dir, removable_prefix=None):
         return None, 'outside-root'
     if rel.split(os.sep)[0] == trash_dir:
         return None, 'already-trashed'
-    if removable_prefix and not rel.startswith(removable_prefix):
+    if prune_prefix and not rel.startswith(prune_prefix):
         return None, 'outside-prefix'
     return src, rel
 
@@ -114,7 +114,7 @@ def _flush_log(root, trash_dir, log_lines):
 @cli.command()
 @click.option('--root', required=True,
               help='Base directory; only files under it may be trashed')
-@click.option('--removable-prefix', default=None,
+@click.option('--prune-prefix', default=None,
               help='Only files under this (root-relative) prefix may be trashed -- '
                    'same guard dedup already applies, opt-in here since trash is '
                    'also used for one-off paths that are not prefix-shaped')
@@ -122,14 +122,14 @@ def _flush_log(root, trash_dir, log_lines):
               help='Recovery directory under ROOT (default: .trash)')
 @click.option('--dry-run', is_flag=True, help='Show what would move, change nothing')
 @click.argument('paths', nargs=-1)
-def trash(root, removable_prefix, trash_dir, dry_run, paths):
+def trash(root, prune_prefix, trash_dir, dry_run, paths):
     """Move files into ROOT/<trash-dir> preserving their relative path.
 
     PATHS may be file:// URIs, absolute paths, or paths relative to ROOT; pass
     '-' to read newline-separated paths from stdin (pipeline style), e.g.
 
         cut -f2 confirmed.tsv | ./local.py trash --root /srv/shares/memories \\
-            --removable-prefix NEW/ -
+            --prune-prefix NEW/ -
     """
     root = os.path.abspath(root)
     items = []
@@ -142,7 +142,7 @@ def trash(root, removable_prefix, trash_dir, dry_run, paths):
     moved = skipped = errored = 0
     log_lines = []
     for raw in items:
-        src, rel = _resolve_under_root(root, raw, trash_dir, removable_prefix)
+        src, rel = _resolve_under_root(root, raw, trash_dir, prune_prefix)
         if src is None:
             click.echo(f'SKIP {rel}: {raw}', err=True); skipped += 1; continue
         if not os.path.exists(src):
@@ -164,18 +164,18 @@ def trash(root, removable_prefix, trash_dir, dry_run, paths):
 @click.option('--dbpath', required=True, help='Index used to find candidate duplicate groups')
 @click.option('--root', required=True,
               help='Mount root; resolves indexed paths and holds the trash dir')
-@click.option('--removable-prefix', default='NEW/Seagate Exp/',
+@click.option('--prune-prefix', default='NEW/Seagate Exp/',
               help='Only files under this (root-relative) prefix are candidates for removal')
 @click.option('--trash-dir', default='.trash')
 @click.option('--limit', type=int, default=0,
               help='Stop after N confirmed removals (0 = all); useful for a cautious first batch')
 @click.option('--apply', is_flag=True, help='Trash confirmed dupes (default: dry run, change nothing)')
-def dedup(dbpath, root, removable_prefix, trash_dir, limit, apply):
+def dedup(dbpath, root, prune_prefix, trash_dir, limit, apply):
     """Trash exact duplicates, re-verifying content with a FRESH hash.
 
     The index is used only to find candidate groups (files sharing a recorded
     sha1). Before removing anything, a fresh sha1 is recomputed from the current
-    bytes of the removable copy and of a surviving copy OUTSIDE --removable-prefix;
+    bytes of the removable copy and of a surviving copy OUTSIDE --prune-prefix;
     the removable is trashed only when those fresh hashes match. Each file is
     hashed at most once (a survivor shared by many duplicates is not re-read).
     Stale index rows or changed files surface as mismatches and are never
@@ -209,7 +209,7 @@ def dedup(dbpath, root, removable_prefix, trash_dir, limit, apply):
         for uri, size in rows:
             p = os.path.abspath(uri[len('file://'):] if uri.startswith('file://') else uri)
             rel = os.path.relpath(p, root)
-            if not rel.startswith('..') and rel.startswith(removable_prefix):
+            if not rel.startswith('..') and rel.startswith(prune_prefix):
                 removable.append((p, rel, size))
             else:
                 survivors.append(p)

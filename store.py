@@ -149,15 +149,15 @@ def truncate(dbpath):
 @cli.command()
 @click.argument('dbpath')
 @click.argument('wildcard', required=False)
-@click.option('--prefix', default=None,
+@click.option('--filter-prefix', default=None,
               help='Only list uris starting with this literal prefix (e.g. '
                    'file:///srv/shares/memories/NEW/MarcBook/)')
-def ls(dbpath, wildcard, prefix):
+def ls(dbpath, wildcard, filter_prefix):
     conn = connect(dbpath)
-    if prefix:
+    if filter_prefix:
         rows = conn.execute(
             "SELECT sha1, uri FROM files WHERE uri LIKE ? ESCAPE '\\' ORDER BY sha1",
-            (_like_prefix(prefix),))
+            (_like_prefix(filter_prefix),))
     else:
         rows = conn.execute('SELECT sha1, uri FROM files ORDER BY sha1')
     for sha1, uri in rows:
@@ -180,18 +180,18 @@ def meta(dbpath):
 @cli.command()
 @click.argument('target')
 @click.argument('source', nargs=-1)
-@click.option('--prefix', default=None,
+@click.option('--filter-prefix', default=None,
               help='Only consider source uris starting with this literal prefix')
-def missing(target, source, prefix):
+def missing(target, source, filter_prefix):
     conn = connect(target)
     for srcname in source:
         conn.execute('ATTACH DATABASE ? AS src', (srcname,))
         query = ('SELECT sha1, uri FROM src.files '
                   'WHERE sha1 NOT IN (SELECT sha1 FROM main.files)')
         params = ()
-        if prefix:
+        if filter_prefix:
             query += " AND uri LIKE ? ESCAPE '\\'"
-            params = (_like_prefix(prefix),)
+            params = (_like_prefix(filter_prefix),)
         for sha1, uri in conn.execute(query, params):
             print(f'{srcname}\t{uri}')
         conn.execute('DETACH DATABASE src')
@@ -201,18 +201,18 @@ def missing(target, source, prefix):
 @cli.command()
 @click.argument('target')
 @click.argument('source', nargs=-1)
-@click.option('--prefix', default=None,
+@click.option('--filter-prefix', default=None,
               help='Only consider source uris starting with this literal prefix')
-def present(target, source, prefix):
+def present(target, source, filter_prefix):
     conn = connect(target)
     for srcname in source:
         conn.execute('ATTACH DATABASE ? AS src', (srcname,))
         query = ('SELECT sha1, uri FROM src.files '
                   'WHERE sha1 IN (SELECT sha1 FROM main.files)')
         params = ()
-        if prefix:
+        if filter_prefix:
             query += " AND uri LIKE ? ESCAPE '\\'"
-            params = (_like_prefix(prefix),)
+            params = (_like_prefix(filter_prefix),)
         for sha1, uri in conn.execute(query, params):
             print(f'{srcname}\t{uri}')
         conn.execute('DETACH DATABASE src')

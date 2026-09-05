@@ -169,7 +169,7 @@ class TestCliCommands:
             ('file:///a/NEW/2010/x.jpg', 'abc', 'x.jpg'),
             ('file:///a/NEW/Olympus/y.jpg', 'def', 'y.jpg'),
         ])
-        result = runner.invoke(cli, ['ls', path, '--prefix', 'file:///a/NEW/2010/'])
+        result = runner.invoke(cli, ['ls', path, '--filter-prefix', 'file:///a/NEW/2010/'])
         assert result.exit_code == 0
         assert 'abc\tfile:///a/NEW/2010/x.jpg' in result.output
         assert 'Olympus' not in result.output
@@ -181,7 +181,7 @@ class TestCliCommands:
             ('file:///a/USB_Drive/x.jpg', 'abc', 'x.jpg'),
             ('file:///a/USBXDrive/y.jpg', 'def', 'y.jpg'),
         ])
-        result = runner.invoke(cli, ['ls', path, '--prefix', 'file:///a/USB_Drive/'])
+        result = runner.invoke(cli, ['ls', path, '--filter-prefix', 'file:///a/USB_Drive/'])
         assert result.exit_code == 0
         assert 'USB_Drive' in result.output
         assert 'USBXDrive' not in result.output
@@ -307,7 +307,7 @@ class TestCrossDbCommands:
             ('file:///NEW/2010/a.jpg', 'gone_a', 'a.jpg'),
             ('file:///NEW/Olympus/b.jpg', 'gone_b', 'b.jpg'),
         ])
-        result = runner.invoke(cli, ['missing', target, source, '--prefix', 'file:///NEW/2010/'])
+        result = runner.invoke(cli, ['missing', target, source, '--filter-prefix', 'file:///NEW/2010/'])
         assert result.exit_code == 0
         assert f'{source}\tfile:///NEW/2010/a.jpg' in result.output
         assert 'Olympus' not in result.output
@@ -318,7 +318,7 @@ class TestCrossDbCommands:
             ('file:///NEW/2010/a.jpg', 'shared', 'a.jpg'),
             ('file:///NEW/Olympus/b.jpg', 'shared', 'b.jpg'),
         ])
-        result = runner.invoke(cli, ['present', target, source, '--prefix', 'file:///NEW/2010/'])
+        result = runner.invoke(cli, ['present', target, source, '--filter-prefix', 'file:///NEW/2010/'])
         assert result.exit_code == 0
         assert f'{source}\tfile:///NEW/2010/a.jpg' in result.output
         assert 'Olympus' not in result.output
